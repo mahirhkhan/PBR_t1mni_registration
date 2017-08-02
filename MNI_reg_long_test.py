@@ -41,7 +41,9 @@ def file_label(mse,tp="tpX"):
             affines = "none"
         else:
             affines = data["affines"]
-    return t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni
+    for affine in affines: 
+        out_mat = affine.split(".")[0] + "_affine_mni.mat"
+    return t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni, out_mat
 
 def conv_aff_mni(t1_mni_mat):
     cmd = ["c3d_affine_tool", "-itk", t1_mni_mat, "-o", t1_mni_mat.split(".")[0]+ ".mat"]
@@ -64,24 +66,33 @@ def conv_xfm(affines):
         invt.inputs.in_file = affine.split(".")[0]+ ".mat"
         invt.inputs.in_file2 = t1_mat #os.path.split(affine)[0] + "/mni_angulated/affine.mat"
         invt.inputs.concat_xfm = True
-        invt.inputs.out_file = affine.split(".")[0] + "_affine_mni.mat"
+        out_mat = affine.split(".")[0] + "_affine_mni.mat"
+        invt.inputs.out_file = out_mat
         invt.cmdline
         invt.run()
+        
+        return out_mat
 
-def apply_flirt(in_file, bl_t1_mni):
+def apply_flirt(in_file, bl_t1_mni, out_mat):
+    print(in_file, bl_t1_mni, out_mat)
     if not os.path.exists(in_file.replace(".nii.gz", "_T1mni.nii.gz")):
-        if os.path.exists(in_file.replace(".nii.gz", "_affine_mni.mat")):
-            
-            print(in_file, "this is IN FILE")
-            flt = fsl.FLIRT()
-            flt.inputs.cost = "mutualinfo"
-            flt.inputs.in_file = in_file
-            flt.inputs.reference = bl_t1_mni 
-            flt.inputs.output_type = "NIFTI_GZ"
-            flt.inputs.in_matrix_file = in_file.replace(".nii.gz", "_affine_mni.mat")
-            flt.inputs.out_file = in_file.replace(".nii.gz", "_T1mni.nii.gz")
-            print(flt.cmdline)
-            flt.run()
+
+        print(out_mat) 
+        if os.path.exists(out_mat): 
+            if in_file == "none":
+                print(in_file)
+            else:
+
+                print(in_file, "this is IN FILE")
+                flt = fsl.FLIRT()
+                flt.inputs.cost = "mutualinfo"
+                flt.inputs.in_file = in_file
+                flt.inputs.reference = bl_t1_mni 
+                flt.inputs.output_type = "NIFTI_GZ"
+                flt.inputs.in_matrix_file = out_mat #in_file.replace(".nii.gz", "_affine_mni.mat")
+                flt.inputs.out_file = in_file.replace(".nii.gz", "_T1mni.nii.gz")
+                print(flt.cmdline)
+                flt.run()
 
 def run_pbr_mni_angulated(mseid):
     cmd = ['pbr', mseid, '-w', 'align', '-R']
@@ -136,13 +147,15 @@ def align_to_baseline(info):
     t1_mni_mat = tp1_base_dir+"/mni_angulated/affine.txt"
     conv_aff_mni(t1_mni_mat)
     
-    t1_file, t2_file, gad_tp1, flair_tp1, affines_tp1, bl_t1_mni = file_label(info[1],tp="BL")
+    t1_file, t2_file, gad_file, flair_file, affines_tp1, bl_t1_mni, out_mat = file_label(info[1],tp="BL")
     
     if os.path.exists(tp1_base_dir+"baseline_mni") is False:
         #align TP1's T2/lesion/FLAIR/etc to T1MNI space
         conv_aff(affines_tp1)
         conv_xfm(affines_tp1)
-        apply_flirt(t2_file, bl_t1_mni)
+        apply_flirt(t2_file, bl_t1_mni, out_mat)
+        apply_flirt(gad_file, bl_t1_mni, out_mat)
+        apply_flirt(flair_file, bl_t1_mni, out_mat)
         
     #3) check if TP1 = TPx
 
@@ -150,11 +163,14 @@ def align_to_baseline(info):
         print ('No need to apply additional alignment, {0} is TP1'.format(info[2]))
     else:
         print ('{0} will need additional alignment'.format(info[2]))
-        t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni = file_label(info[2])
+        t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni,out_mat  = file_label(info[2])
         conv_aff(affines)
         conv_xfm(affines)
-        apply_flirt(t1_file, bl_t1_mni)
-        apply_flirt(t2_file, bl_t1_mni)
+        
+        apply_flirt(t1_file, bl_t1_mni, out_mat)
+        apply_flirt(t2_file, bl_t1_mni, out_mat)
+        apply_flirt(gad_file, bl_t1_mni, out_mat)
+        apply_flirt(flair_file, bl_t1_mni, out_mat)
     
 
 #call functions
