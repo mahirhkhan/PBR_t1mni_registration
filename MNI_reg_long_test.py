@@ -118,6 +118,7 @@ def apply_flirt(in_file, bl_t1_mni):
     flt.inputs.output_type = "NIFTI_GZ"
     flt.inputs.in_matrix_file = in_matrix_file
     flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
+    flt.inputs.out_matrix_file = format_to_baseline_mni(in_file,"_flirt.mat")
     flt.cmdline
     flt.run()
     print ("FLIRT complete"); print
