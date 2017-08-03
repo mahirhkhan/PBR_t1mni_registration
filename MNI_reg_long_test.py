@@ -1,5 +1,5 @@
 import os
-from subprocess import Popen, run, PIPE
+from subprocess import Popen, PIPE
 import json
 from nipype.interfaces import fsl
 from nipype.interfaces.fsl import RobustFOV, Reorient2Std
@@ -17,6 +17,7 @@ class imageData():
         self.bl_t1_mni = bl_t1_mni
 
 def file_label(mse,tp="tpX",count=1):
+    new_tp=tp
     with open(PBR_base_dir+"/"+mse+"/alignment/status.json") as data_file:  
         data = json.load(data_file)
         
@@ -61,9 +62,11 @@ def file_label(mse,tp="tpX",count=1):
             #write error script
         else:
             count += 1
-            file_label(mse,tp=tp,count)
+            file_label(mse,new_tp,count)
     else:
-        return imageData(t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni)
+        for affine in affines: 
+            out_mat = affine.split(".")[0] + "_mni.mat"
+	return imageData(t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni)
 
 def conv_aff_mni(t1_mni_mat):
     cmd = ["c3d_affine_tool", "-itk", t1_mni_mat, "-o", t1_mni_mat.split(".")[0]+ ".mat"]
@@ -86,14 +89,17 @@ def conv_xfm(affines):
         invt.inputs.in_file = affine.split(".")[0]+ ".mat"
         invt.inputs.in_file2 = t1_mat #os.path.split(affine)[0] + "/mni_angulated/affine.mat"
         invt.inputs.concat_xfm = True
-        invt.inputs.out_file = affine.split(".")[0] + "_affine_mni.mat"
+        out_mat = affine.split(".")[0] + "_mni.mat"
+        invt.inputs.out_file = out_mat
         invt.cmdline
         invt.run()
 
 def apply_flirt(in_file, bl_t1_mni):
+    print(in_file, bl_t1_mni)
     if not os.path.exists(in_file.replace(".nii.gz", "_T1mni.nii.gz")):
-        if os.path.exists(in_file.replace(".nii.gz", "_affine_mni.mat")):
-            
+        if in_file == "none":
+            print(in_file)
+        else:
             print(in_file, "this is IN FILE")
             flt = fsl.FLIRT()
             flt.inputs.cost = "mutualinfo"
@@ -189,10 +195,12 @@ def align_to_baseline(info):
         conv_xfm(tp2.affines)
         apply_flirt(tp2.t1_file, tp1.bl_t1_mni)
         apply_flirt(tp2.t2_file, tp1.bl_t1_mni)
+        apply_flirt(tp2.gad_file, tp1.bl_t1_mni)
+        apply_flirt(tp2.flair_file, tp1.bl_t1_mni)
     
 
 #call functions
-subjects = ['mse1872', 'mse3644', 'mse1873', 'mse1874', 'mse1875', 'mse4534', 'mse6638']    
+subjects = ["""'mse1872', 'mse3644', 'mse1873',""" 'mse1874'""", 'mse1875', 'mse4534', 'mse6638'"""]    
 for subject in subjects:
     print ()
     msid = get_msid(subject)
