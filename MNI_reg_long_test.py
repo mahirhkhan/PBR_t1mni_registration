@@ -86,7 +86,7 @@ def conv_aff(affines):
         cmd = ["c3d_affine_tool", "-itk", affine, "-o", affine.split(".")[0]+ ".mat"]
         proc = Popen(cmd, stdout=PIPE)
         proc.wait()
-        print ("Conversion complete"); print()
+        print ("Conversion complete"); print
 
 def conv_xfm(affines,TP1_base_dir):
     for affine in affines:
@@ -99,25 +99,28 @@ def conv_xfm(affines,TP1_base_dir):
         invt.inputs.out_file = format_to_baseline_mni(affine,"_mni.mat")
         invt.cmdline
         invt.run()
-        print ("Transformation complete"); print()
+        print ("Transformation complete"); print
 
 def apply_flirt(in_file, bl_t1_mni):
     if not os.path.exists(format_to_baseline_mni(in_file,"_affine_mni.mat","hide")):
-        print ("No matrix file exists for this file, could not perform FLIRT")
-        print (in_file)
+        print ("No matrix file exists for this in_file, using baseline T1_mni affine.mat to apply FLIRT")
+        in_matrix_file = os.path.join(os.path.split(bl_t1_mni)[0], "affine.mat")
     else:
-        print ("Applying FLIRT to the following file...")
-        print (in_file)
-        flt = fsl.FLIRT()
-        flt.inputs.cost = "mutualinfo"
-        flt.inputs.in_file = in_file
-        flt.inputs.reference = bl_t1_mni 
-        flt.inputs.output_type = "NIFTI_GZ"
-        flt.inputs.in_matrix_file = format_to_baseline_mni(in_file,"_affine_mni.mat")
-        flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
-        flt.cmdline
-        flt.run()
-        print ("FLIRT complete"); print()
+        in_matrix_file = format_to_baseline_mni(in_file,"_affine_mni.mat","hide")
+    print ("Applying FLIRT to the following file...")
+    print (in_file)
+    print ("Using the following matrix...")
+    print (in_matrix_file)
+    flt = fsl.FLIRT()
+    flt.inputs.cost = "mutualinfo"
+    flt.inputs.in_file = in_file
+    flt.inputs.reference = bl_t1_mni 
+    flt.inputs.output_type = "NIFTI_GZ"
+    flt.inputs.in_matrix_file = in_matrix_file
+    flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
+    flt.cmdline
+    flt.run()
+    print ("FLIRT complete"); print
 
 def run_pbr_mni_angulated(mseid):
     cmd = ['pbr', mseid, '-w', 'alignment', '-R']
@@ -202,12 +205,12 @@ def align_to_baseline(info):
         conv_xfm(tp1.affines, tp1_base_dir)
         apply_flirt(tp1.t2_file, tp1.bl_t1_mni)
     else:
-        print ("Baseline already has files in T1MNI space, skipping this step"); print()
+        print ("Baseline already has files in T1MNI space, skipping this step"); print
         
     #3) check if TP1 = TPx
 
     if info[1] == info[2]:
-        print ('No need to apply additional alignment, {0} is TP1'.format(info[2])); print()
+        print ('No need to apply additional alignment, {0} is TP1'.format(info[2])); print
     else:
         print ('{0} will need additional alignment'.format(info[2]))
         tp2 = file_label(info[2])
