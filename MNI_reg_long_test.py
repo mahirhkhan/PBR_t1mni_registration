@@ -1,24 +1,43 @@
+
+# coding: utf-8
+
+# In[8]:
+
 import os
-from subprocess import Popen, run, PIPE
+from subprocess import Popen, PIPE
 import json
 from nipype.interfaces import fsl
 from nipype.interfaces.fsl import RobustFOV, Reorient2Std
 from nipype.interfaces.c3 import C3dAffineTool
+import argparse
 
 PBR_base_dir = '/data/henry7/PBR/subjects'
 
-def file_label(mse,tp="tpX"):
+class imageData():
+    def __init__(self, t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni):
+        self.t1_file = t1_file
+        self.t2_file = t2_file
+        self.gad_file = gad_file
+        self.flair_file = flair_file
+        self.affines = affines
+        self.bl_t1_mni = bl_t1_mni
+
+def file_label(mse,tp="tpX",count=1):
     with open(PBR_base_dir+"/"+mse+"/alignment/status.json") as data_file:  
         data = json.load(data_file)
+        
         #checking alignment status file for t1, t2, gad and flair 
         if len(data["t1_files"]) == 0:
             print("no {0} t1 files".format(tp))
+            run_pbr_align(mseid)
             t1_file = "none"
         else:
             t1_file = data["t1_files"][-1]
             bl_t1_mni = PBR_base_dir+'/'+mse +"/alignment/mni_angulated/"+os.path.split(t1_file)[-1].replace(".nii.gz", "_trans.nii.gz")
+        
         if len(data["t2_files"]) == 0:
             print("no {0} t2 files".format(tp))
+            run_pbr_align(mseid)
             t2_file = "none"
         else:
             t2_file = data["t2_files"][-1]
@@ -29,7 +48,6 @@ def file_label(mse,tp="tpX"):
         else:
             gad_file = data["gad_files"][-1]
      
-
         if len(data["flair_files"]) == 0:
             print("no {0} flair files".format(tp))
             flair_file = "none"
@@ -41,7 +59,17 @@ def file_label(mse,tp="tpX"):
             affines = "none"
         else:
             affines = data["affines"]
-    return t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni
+    
+    #run program again if t1_file = "none" or t2_file = "none", but only run 2 iterations of run_pbr_align to avoid recursive errors
+    if t1_file == "none" or t2_file == "none":
+        if count > 3:
+            print ("Error in status.json file, T1 or T2 files are not being categorized correctly")
+            #write error script
+        else:
+            count += 1
+            file_label(mse,tp,count)
+    else:
+        return imageData(t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni)
 
 def conv_aff_mni(t1_mni_mat):
     cmd = ["c3d_affine_tool", "-itk", t1_mni_mat, "-o", t1_mni_mat.split(".")[0]+ ".mat"]
@@ -53,41 +81,65 @@ def conv_aff_mni(t1_mni_mat):
 
 def conv_aff(affines):
     for affine in affines:
-        print(affine)
+        print ("Converting the following affine from .txt to .mat format...")
+        print (affine)
         cmd = ["c3d_affine_tool", "-itk", affine, "-o", affine.split(".")[0]+ ".mat"]
         proc = Popen(cmd, stdout=PIPE)
-        print(cmd)
+        proc.wait()
+        print ("Conversion complete"); print
 
-def conv_xfm(affines):
+def conv_xfm(affines,TP1_base_dir):
     for affine in affines:
+        print ("Transforming the following affine to TP1 T1MNI space...")
+        print (affine)
         invt = fsl.ConvertXFM()
         invt.inputs.in_file = affine.split(".")[0]+ ".mat"
-        invt.inputs.in_file2 = t1_mat #os.path.split(affine)[0] + "/mni_angulated/affine.mat"
+        invt.inputs.in_file2 = TP1_base_dir + "/mni_angulated/affine.mat"
         invt.inputs.concat_xfm = True
-        invt.inputs.out_file = affine.split(".")[0] + "_affine_mni.mat"
+        invt.inputs.out_file = format_to_baseline_mni(affine,"_mni.mat")
         invt.cmdline
         invt.run()
+        print ("Transformation complete"); print
 
 def apply_flirt(in_file, bl_t1_mni):
-    if not os.path.exists(in_file.replace(".nii.gz", "_T1mni.nii.gz")):
-        if os.path.exists(in_file.replace(".nii.gz", "_affine_mni.mat")):
-            
-            print(in_file, "this is IN FILE")
-            flt = fsl.FLIRT()
-            flt.inputs.cost = "mutualinfo"
-            flt.inputs.in_file = in_file
-            flt.inputs.reference = bl_t1_mni 
-            flt.inputs.output_type = "NIFTI_GZ"
-            flt.inputs.in_matrix_file = in_file.replace(".nii.gz", "_affine_mni.mat")
-            flt.inputs.out_file = in_file.replace(".nii.gz", "_T1mni.nii.gz")
-            print(flt.cmdline)
-            flt.run()
+    if not os.path.exists(format_to_baseline_mni(in_file,"_affine_mni.mat","hide")):
+        print ("No matrix file exists for this in_file, using baseline T1_mni affine.mat to apply FLIRT")
+        in_matrix_file = os.path.join(os.path.split(bl_t1_mni)[0], "affine.mat")
+    else:
+        in_matrix_file = format_to_baseline_mni(in_file,"_affine_mni.mat","hide")
+    print ("Applying FLIRT to the following file...")
+    print (in_file)
+    print ("Using the following matrix...")
+    print (in_matrix_file)
+    flt = fsl.FLIRT()
+    flt.inputs.cost = "mutualinfo"
+    flt.inputs.in_file = in_file
+    flt.inputs.reference = bl_t1_mni 
+    flt.inputs.output_type = "NIFTI_GZ"
+    flt.inputs.in_matrix_file = in_matrix_file
+    flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
+    flt.inputs.out_matrix_file = format_to_baseline_mni(in_file,"_flirt.mat")
+    flt.cmdline
+    flt.run()
+    print ("FLIRT complete"); print
 
 def run_pbr_mni_angulated(mseid):
+    cmd = ['pbr', mseid, '-w', 'alignment', '-R']
+    print (cmd)
+    proc = Popen(cmd)
+    proc.wait()
+    
+def run_pbr_align(mseid):
+    alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
+    cmd = ['rm', alignment_folder]
+    print (cmd)
+    proc = Popen(cmd)
+    proc.wait()
     cmd = ['pbr', mseid, '-w', 'align', '-R']
     print (cmd)
-    #proc = Popen(cmd)
-    #proc.wait()
+    proc = Popen(cmd)
+    proc.wait()
+    run_pbr_mni_angulated(mseid)
 
 def check_mni_angulated_folder(mseid):
     filepath = '/data/henry7/PBR/subjects/{0}/alignment/mni_angulated'.format(mseid)
@@ -97,9 +149,19 @@ def check_mni_angulated_folder(mseid):
     else:
         print ("mni_angulated folder for {0} does not exist, fixing the issue".format(mseid))
         run_pbr_mni_angulated(mseid)
-
+        print ("mni_angulated folder for {0} exists".format(mseid))
         check = False
     return check
+
+def format_to_baseline_mni(in_file,extension,message="show"):
+    out_path = in_file.split("alignment")[0] + "alignment/baseline_mni"
+    file_name = in_file.split('/')[-1].split('.')[0] + extension
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+    out_file = os.path.join(out_path, file_name)
+    if message == "show":
+        print ("Your output file will be: {0}".format(out_file))
+    return out_file
 
 def get_msid(mseid):
     from glob import glob
@@ -112,7 +174,7 @@ def get_msid(mseid):
         return 1
 
 def get_tps(msid,mseid):
-    filepath = os.path.join('/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_ms/{0}.txt'.format(msid))
+    filepath = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_ms/{0}.txt'.format(msid)
     if os.path.exists(filepath):
         with open(filepath,'r') as f:
             timepoints = f.readlines()
@@ -136,37 +198,61 @@ def align_to_baseline(info):
     t1_mni_mat = tp1_base_dir+"/mni_angulated/affine.txt"
     conv_aff_mni(t1_mni_mat)
     
-    t1_file, t2_file, gad_tp1, flair_tp1, affines_tp1, bl_t1_mni = file_label(info[1],tp="BL")
+    tp1 = file_label(info[1],tp="BL")
     
-    if os.path.exists(tp1_base_dir+"baseline_mni") is False:
+    if not os.path.exists(os.path.join(tp1_base_dir,"baseline_mni")):
         #align TP1's T2/lesion/FLAIR/etc to T1MNI space
-        conv_aff(affines_tp1)
-        conv_xfm(affines_tp1)
-        apply_flirt(t2_file, bl_t1_mni)
+        conv_aff(tp1.affines)
+        conv_xfm(tp1.affines, tp1_base_dir)
+        apply_flirt(tp1.t2_file, tp1.bl_t1_mni)
+    else:
+        print ("Baseline already has files in T1MNI space, skipping this step"); print
         
     #3) check if TP1 = TPx
 
     if info[1] == info[2]:
-        print ('No need to apply additional alignment, {0} is TP1'.format(info[2]))
+        print ('No need to apply additional alignment, {0} is TP1'.format(info[2])); print
     else:
         print ('{0} will need additional alignment'.format(info[2]))
-        t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni = file_label(info[2])
-        conv_aff(affines)
-        conv_xfm(affines)
-        apply_flirt(t1_file, bl_t1_mni)
-        apply_flirt(t2_file, bl_t1_mni)
+        tp2 = file_label(info[2])
+        conv_aff(tp2.affines)
+        conv_xfm(tp2.affines, tp1_base_dir)
+        apply_flirt(tp2.t1_file, tp1.bl_t1_mni)
+        apply_flirt(tp2.t2_file, tp1.bl_t1_mni)
     
 
 #call functions
-subjects = ['mse1872', 'mse3644', 'mse1873', 'mse1874', 'mse1875', 'mse4534', 'mse6638']    
-for subject in subjects:
-    print ()
-    msid = get_msid(subject)
-    if msid == 1:
-        continue
-    else:
-        info = get_tps(msid,subject)
-        if info is False:
-            continue
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('ms', nargs="+")
+    args = parser.parse_args()
+    ms = args.ms
+    #outdir = cc["output_directory"]
+    print("msid is:", ms)
+
+    for msid in ms:
+        text_file = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_ms/{0}.txt'.format(msid)
+        if os.path.exists(text_file):
+            with open(text_file,'r') as f:
+                timepoints = f.readlines()
+                for timepoint in timepoints:
+                    mse_bl = timepoints[0].replace("\n","")
+                    mseid = timepoint.replace("\n","")
+                    info = [msid, mse_bl, mseid]
+                    align_to_baseline(info)
+                    print ("{}'s T1MNI registration complete".format(mseid)) 
+            print ("{0}'s longitudinal registration complete".format(msid))
         else:
-            align_to_baseline(info)
+            print ("no msid tracking txt file exists")
+            info = False
+            continue
+       
+
+
+# In[10]:
+
+
+
+
+# success: mse4334 (tp2.t1_file error)
+# fail: mse3046 (no tracking txt file)
