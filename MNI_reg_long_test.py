@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[8]:
+# In[15]:
 
 import os
 from subprocess import Popen, PIPE
@@ -135,7 +135,9 @@ def run_pbr_align(mseid):
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
-    cmd = ['pbr', mseid, '-w', 'align', '-R']
+    from getpass import getpass
+    password = getpass("mspacman password: ")
+    cmd = ['pbr', mseid, '-w', 'align', '-R', "-p", password]
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
@@ -163,28 +165,6 @@ def format_to_baseline_mni(in_file,extension,message="show"):
         print ("Your output file will be: {0}".format(out_file))
     return out_file
 
-def get_msid(mseid):
-    from glob import glob
-    if check_mni_angulated_folder(mseid) is True:
-        files = glob("/data/henry7/PBR/subjects/{0}/alignment/mni_angulated/ms*".format(mseid))
-        msid = files[0].split('/')[-1].split('-')[0]
-        mseid = files[0].split('/')[-1].split('-')[1]
-        return msid
-    else:
-        return 1
-
-def get_tps(msid,mseid):
-    filepath = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_ms/{0}.txt'.format(msid)
-    if os.path.exists(filepath):
-        with open(filepath,'r') as f:
-            timepoints = f.readlines()
-            mse_bl = timepoints[0].replace("\n","")
-            info = [msid, mse_bl, mseid]
-            return info
-    else:
-        print ("no msid tracking txt file exists")
-        return False
-
 def align_to_baseline(info):
     #1) check if TP1 has mni_angulated folder, even if TP1 = TPx
     
@@ -205,6 +185,8 @@ def align_to_baseline(info):
         conv_aff(tp1.affines)
         conv_xfm(tp1.affines, tp1_base_dir)
         apply_flirt(tp1.t2_file, tp1.bl_t1_mni)
+        if tp1.gad_file != "none": apply_flirt(tp1.gad_file, tp1.bl_t1_mni) 
+        if tp1.flair_file != "none": apply_flirt(tp1.flair_file, tp1.bl_t1_mni) 
     else:
         print ("Baseline already has files in T1MNI space, skipping this step"); print
         
@@ -219,7 +201,8 @@ def align_to_baseline(info):
         conv_xfm(tp2.affines, tp1_base_dir)
         apply_flirt(tp2.t1_file, tp1.bl_t1_mni)
         apply_flirt(tp2.t2_file, tp1.bl_t1_mni)
-    
+        if tp2.gad_file != "none": apply_flirt(tp2.gad_file, tp1.bl_t1_mni) 
+        if tp2.flair_file != "none": apply_flirt(tp2.flair_file, tp1.bl_t1_mni) 
 
 #call functions
 if __name__ == '__main__':
@@ -248,11 +231,3 @@ if __name__ == '__main__':
             continue
        
 
-
-# In[10]:
-
-
-
-
-# success: mse4334 (tp2.t1_file error)
-# fail: mse3046 (no tracking txt file)
