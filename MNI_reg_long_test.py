@@ -75,13 +75,16 @@ def conv_aff_mni(t1_mni_mat):
     print(cmd)
 
 def conv_aff(affines):
-    for affine in affines:
-        print ("Converting the following affine from .txt to .mat format...")
-        print (affine)
-        cmd = ["c3d_affine_tool", "-itk", affine, "-o", affine.split(".")[0]+ ".mat"]
-        proc = Popen(cmd, stdout=PIPE)
-        proc.wait()
-        print ("Conversion complete"); print()
+   for affine in affines:
+       if not os.path.exists(affine):
+           print("NO AFFINES TO CONVERT - skipping this subject")
+       else:
+           print ("Converting the following affine from .txt to .mat format...")
+           print (affine)
+           cmd = ["c3d_affine_tool", "-itk", affine, "-o", affine.split(".")[0]+ ".mat"]
+           proc = Popen(cmd, stdout=PIPE)
+           proc.wait()
+           print ("Conversion complete"); print
 
 def conv_xfm(affines,TP1_base_dir):
     for affine in affines:
@@ -97,15 +100,27 @@ def conv_xfm(affines,TP1_base_dir):
         print ("Transformation complete"); print()
 
 def apply_flirt(in_file, bl_t1_mni):
-    if not os.path.exists(format_to_baseline_mni(in_file,"_affine_mni.mat","hide")):
-        in_matrix = os.path.split(bl_t1_mni)[0] + "/affine.mat"
-        print(in_matrix)
-        print ("No matrix file exists for this file, this is a T1 file - using affine.mat matrix file")
-        print (in_file)
+    if not os.path.exists(in_file):
+        print(in_file, "this file does not exist")
     else:
         in_matrix = format_to_baseline_mni(in_file,"_affine_mni.mat")
         print ("Applying FLIRT to the following file...")
         print (in_file)
+        flt = fsl.FLIRT()
+        flt.inputs.cost = "mutualinfo"
+        flt.inputs.in_file = in_file
+        flt.inputs.reference = bl_t1_mni 
+        flt.inputs.output_type = "NIFTI_GZ"
+        flt.inputs.in_matrix_file = in_matrix
+        flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
+        flt.cmdline
+        flt.run()
+        print ("FLIRT complete"); print()
+        print (in_file, "FLIRT complete"); print
+
+def apply_t1_flirt(in_file, bl_t1_mni):
+    
+    in_matrix = os.path.split(bl_t1_mni)[0] + "/affine.mat"
     flt = fsl.FLIRT()
     flt.inputs.cost = "mutualinfo"
     flt.inputs.in_file = in_file
@@ -116,6 +131,7 @@ def apply_flirt(in_file, bl_t1_mni):
     flt.cmdline
     flt.run()
     print ("FLIRT complete"); print()
+    print (in_file, "FLIRT complete"); print
 
 def run_pbr_mni_angulated(mseid):
     cmd = ['pbr', mseid, '-w', 'alignment', '-R']
@@ -125,7 +141,7 @@ def run_pbr_mni_angulated(mseid):
     
 def run_pbr_align(mseid):
     alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
-    cmd = ['rm', alignment_folder]
+    cmd = ['rm','-r', alignment_folder]
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
@@ -198,11 +214,10 @@ def align_to_baseline(info):
         #align TP1's T2/lesion/FLAIR/etc to T1MNI space
         conv_aff(tp1.affines)
         conv_xfm(tp1.affines, tp1_base_dir)
-        apply_flirt(tp1.t1_file, tp1.bl_t1_mni)
+        apply_t1_flirt(tp1.t1_file, tp1.bl_t1_mni)
         apply_flirt(tp1.t2_file, tp1.bl_t1_mni)
         apply_flirt(tp1.gad_file, tp1.bl_t1_mni)
         apply_flirt(tp1.flair_file, tp1.bl_t1_mni)
-        
     else:
         print ("Baseline already has files in T1MNI space, skipping this step"); print()
         
@@ -215,7 +230,7 @@ def align_to_baseline(info):
         tp2 = file_label(info[2])
         conv_aff(tp2.affines)
         conv_xfm(tp2.affines, tp1_base_dir)
-        apply_flirt(tp2.t1_file, tp1.bl_t1_mni)
+        apply_t1_flirt(tp2.t1_file, tp1.bl_t1_mni)
         apply_flirt(tp2.t2_file, tp1.bl_t1_mni)
         apply_flirt(tp2.gad_file, tp1.bl_t1_mni)
         apply_flirt(tp2.flair_file, tp1.bl_t1_mni)
