@@ -136,7 +136,7 @@ def apply_t1_flirt(in_file, bl_t1_mni):
     print (in_file, "FLIRT complete"); print
 
 def run_pbr_mni_angulated(mseid):
-    cmd = ['pbr', mseid, '-w', 'alignment', '-R']
+    cmd = ['pbr', mseid, '-w', 'align', '-R']
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
