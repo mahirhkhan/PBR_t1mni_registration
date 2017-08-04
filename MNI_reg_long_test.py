@@ -147,7 +147,9 @@ def run_pbr_align(mseid):
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
-    cmd = ['pbr', mseid, '-w', 'align', '-R']
+    from getpass import getpass
+    password = getpass("mspacman password: ")
+    cmd = ['pbr', mseid, '-w', 'align', '-R', "-p", password]
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
