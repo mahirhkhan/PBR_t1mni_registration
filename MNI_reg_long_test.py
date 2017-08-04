@@ -20,7 +20,6 @@ class imageData():
 def file_label(mse,tp="tpX",count=1):
     with open(PBR_base_dir+"/"+mse+"/alignment/status.json") as data_file:  
         data = json.load(data_file)
-        
         #checking alignment status file for t1, t2, gad and flair 
         if len(data["t1_files"]) == 0:
             print("no {0} t1 files".format(tp))
@@ -88,16 +87,19 @@ def conv_aff(affines):
 
 def conv_xfm(affines,TP1_base_dir):
     for affine in affines:
-        print ("Transforming the following affine to TP1 T1MNI space...")
-        print (affine)
-        invt = fsl.ConvertXFM()
-        invt.inputs.in_file = affine.split(".")[0]+ ".mat"
-        invt.inputs.in_file2 = TP1_base_dir + "/mni_angulated/affine.mat"
-        invt.inputs.concat_xfm = True
-        invt.inputs.out_file = format_to_baseline_mni(affine,"_mni.mat")
-        invt.cmdline
-        invt.run()
-        print ("Transformation complete"); print()
+        if not os.path.exists(affine):
+           print("NO AFFINES TO CONVERT - skipping this subject")
+        else:
+            print ("Transforming the following affine to TP1 T1MNI space...")
+            print (affine)
+            invt = fsl.ConvertXFM()
+            invt.inputs.in_file = affine.split(".")[0]+ ".mat"
+            invt.inputs.in_file2 = TP1_base_dir + "/mni_angulated/affine.mat"
+            invt.inputs.concat_xfm = True
+            invt.inputs.out_file = format_to_baseline_mni(affine,"_mni.mat")
+            invt.cmdline
+            invt.run()
+            print ("Transformation complete"); print()
 
 def apply_flirt(in_file, bl_t1_mni):
     if not os.path.exists(in_file):
