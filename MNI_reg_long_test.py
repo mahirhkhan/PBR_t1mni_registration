@@ -55,7 +55,7 @@ def file_label(mse,tp="tpX",count=1):
             affines = data["affines"]
     
     #run program again if t1_file = "none" or t2_file = "none", but only run 2 iterations of run_pbr_align to avoid recursive errors
-    if t1_file == "none" or t2_file == "none":
+    if t1_file == "none": #or t2_file == "none":
         if count > 3:
             print ("Error in status.json file, T1 or T2 files are not being categorized correctly")
             #write error script
@@ -102,12 +102,32 @@ def conv_xfm(affines,TP1_base_dir):
             print ("Transformation complete"); print()
 
 def apply_flirt(in_file, bl_t1_mni):
-    if not os.path.exists(in_file):
-        print(in_file, "this file does not exist")
-    else:
-        in_matrix = format_to_baseline_mni(in_file,"_affine_mni.mat")
-        print ("Applying FLIRT to the following file...")
-        print (in_file)
+    if os.path.exists(format_to_baseline_mni(in_file,"_T1mni.nii.gz")):
+        print("FLIRT had been run for:",in_file)
+    else: 
+        if not os.path.exists(in_file):
+            print(in_file, "this file does not exist")
+        else:
+            in_matrix = format_to_baseline_mni(in_file,"_affine_mni.mat")
+            print ("Applying FLIRT to the following file...")
+            print (in_file)
+            flt = fsl.FLIRT()
+            flt.inputs.cost = "mutualinfo"
+            flt.inputs.in_file = in_file
+            flt.inputs.reference = bl_t1_mni 
+            flt.inputs.output_type = "NIFTI_GZ"
+            flt.inputs.in_matrix_file = in_matrix
+            flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
+            flt.cmdline
+            flt.run()
+            print ("FLIRT complete"); print()
+            print (in_file, "FLIRT complete"); print
+
+def apply_t1_flirt(in_file, bl_t1_mni):
+    if os.path.exists(format_to_baseline_mni(in_file,"_T1mni.nii.gz")):
+        print("FLIRT had been run for:",in_file)
+    else: 
+        in_matrix = os.path.split(bl_t1_mni)[0] + "/affine.mat"
         flt = fsl.FLIRT()
         flt.inputs.cost = "mutualinfo"
         flt.inputs.in_file = in_file
@@ -120,29 +140,6 @@ def apply_flirt(in_file, bl_t1_mni):
         print ("FLIRT complete"); print()
         print (in_file, "FLIRT complete"); print
 
-def apply_t1_flirt(in_file, bl_t1_mni):
-    
-    in_matrix = os.path.split(bl_t1_mni)[0] + "/affine.mat"
-    flt = fsl.FLIRT()
-    flt.inputs.cost = "mutualinfo"
-    flt.inputs.in_file = in_file
-    flt.inputs.reference = bl_t1_mni 
-    flt.inputs.output_type = "NIFTI_GZ"
-    flt.inputs.in_matrix_file = in_matrix
-    flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
-    flt.cmdline
-    flt.run()
-    print ("FLIRT complete"); print()
-    print (in_file, "FLIRT complete"); print
-
-def run_pbr_mni_angulated(mseid):
-    from getpass import getpass
-    password = getpass("mspacman password: ")
-    cmd = ['pbr', mseid, '-w', 'align', '-R', '-ps', password]
-    print (cmd)
-    proc = Popen(cmd)
-    proc.wait()
-    
 def run_pbr_align(mseid):
     alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
     cmd = ['rm','-r', alignment_folder]
@@ -155,7 +152,6 @@ def run_pbr_align(mseid):
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
-    run_pbr_mni_angulated(mseid)
 
 def check_mni_angulated_folder(mseid):
     filepath = '/data/henry7/PBR/subjects/{0}/alignment/mni_angulated'.format(mseid)
