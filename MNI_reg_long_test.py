@@ -136,7 +136,9 @@ def apply_t1_flirt(in_file, bl_t1_mni):
     print (in_file, "FLIRT complete"); print
 
 def run_pbr_mni_angulated(mseid):
-    cmd = ['pbr', mseid, '-w', 'align', '-R']
+    from getpass import getpass
+    password = getpass("mspacman password: ")
+    cmd = ['pbr', mseid, '-w', 'align', '-R', '-ps', password]
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
@@ -149,7 +151,7 @@ def run_pbr_align(mseid):
     proc.wait()
     from getpass import getpass
     password = getpass("mspacman password: ")
-    cmd = ['pbr', mseid, '-w', 'align', '-R', "-p", password]
+    cmd = ['pbr', mseid, '-w', 'align', '-R', "-ps", password]
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
