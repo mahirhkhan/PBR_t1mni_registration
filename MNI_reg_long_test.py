@@ -18,6 +18,8 @@ class imageData():
         self.bl_t1_mni = bl_t1_mni
 
 def file_label(mse,tp="tpX",count=1):
+    if not os.path.exists(PBR_base_dir+"/"+mse+"/alignment/status.json"):
+        run_pbr_align(mseid)
     with open(PBR_base_dir+"/"+mse+"/alignment/status.json") as data_file:  
         data = json.load(data_file)
         #checking alignment status file for t1, t2, gad and flair 
@@ -139,20 +141,31 @@ def apply_t1_flirt(in_file, bl_t1_mni):
         flt.run()
         print ("FLIRT complete"); print()
         print (in_file, "FLIRT complete"); print
-
-def run_pbr_align(mseid):
-    alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
-    cmd = ['rm','-r', alignment_folder]
+"""
+def run_pbr_align2(mseid):
+    from getpass import getpass
+    password = getpass("mspacman password: ")
+    cmd = ['pbr', mseid, '-w', 'align', '-R', '-ps', password]
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
+"""
+    
+def run_pbr_align(mseid):
+    alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
+    if os.path.exists(alignment_folder):
+        cmd_rm = ['rm','-r', alignment_folder]
+        print (cmd_rm)
+        proc = Popen(cmd_rm)
+        proc.wait()
+    #run_pbr_mni_angulated(mseid)
     from getpass import getpass
     password = getpass("mspacman password: ")
     cmd = ['pbr', mseid, '-w', 'align', '-R', "-ps", password]
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
-
+   
 def check_mni_angulated_folder(mseid):
     filepath = '/data/henry7/PBR/subjects/{0}/alignment/mni_angulated'.format(mseid)
     if os.path.exists(filepath):
