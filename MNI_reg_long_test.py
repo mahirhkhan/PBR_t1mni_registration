@@ -147,25 +147,16 @@ def apply_t1_flirt(in_file, bl_t1_mni):
         flt.run()
         print ("FLIRT complete"); print()
         print (in_file, "FLIRT complete"); print
-"""
-def run_pbr_align2(mseid):
-    from getpass import getpass
-    password = getpass("mspacman password: ")
-    cmd = ['pbr', mseid, '-w', 'align', '-R', '-ps', password]
-    print (cmd)
-    proc = Popen(cmd)
-    proc.wait()
-"""
-    
+
 def run_pbr_align(mseid):
+    from getpass import getpass
     alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
     if os.path.exists(alignment_folder):
         cmd_rm = ['rm','-r', alignment_folder]
         print (cmd_rm)
         proc = Popen(cmd_rm)
         proc.wait()
-    #run_pbr_mni_angulated(mseid)
-    from getpass import getpass
+    
     password = getpass("mspacman password: ")
     cmd = ['pbr', mseid, '-w', 'align', '-R', "-ps", password]
     print (cmd)
@@ -179,7 +170,7 @@ def check_mni_angulated_folder(mseid):
         check = True
     else:
         print ("mni_angulated folder for {0} does not exist, fixing the issue".format(mseid))
-        run_pbr_mni_angulated(mseid)
+        run_pbr_align(mseid)
         print ("mni_angulated folder for {0} exists".format(mseid))
         check = False
     return check
