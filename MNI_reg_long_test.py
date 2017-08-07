@@ -1,3 +1,8 @@
+
+# coding: utf-8
+
+# In[8]:
+
 import os
 from subprocess import Popen, PIPE
 import json
@@ -22,6 +27,7 @@ def file_label(mse,tp="tpX",count=1):
         run_pbr_align(mseid)
     with open(PBR_base_dir+"/"+mse+"/alignment/status.json") as data_file:  
         data = json.load(data_file)
+        
         #checking alignment status file for t1, t2, gad and flair 
         if len(data["t1_files"]) == 0:
             print("no {0} t1 files".format(tp))
@@ -249,8 +255,8 @@ def align_to_baseline(info):
         apply_flirt(tp2.t2_file, tp1.bl_t1_mni)
         apply_flirt(tp2.gad_file, tp1.bl_t1_mni)
         apply_flirt(tp2.flair_file, tp1.bl_t1_mni)
-    
 
+#call functions
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('ms', nargs="+")
@@ -276,5 +282,3 @@ if __name__ == '__main__':
             print ("no msid tracking txt file exists")
             info = False
             continue
-       
-
