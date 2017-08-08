@@ -82,6 +82,10 @@ def conv_aff_mni(t1_mni_mat):
     print(cmd)
 
 def conv_aff(affines):
+<<<<<<< Updated upstream
+=======
+        
+>>>>>>> Stashed changes
    for affine in affines:
        if not os.path.exists(affine):
            print("NO AFFINES TO CONVERT - skipping this subject")
@@ -110,6 +114,7 @@ def conv_xfm(affines,TP1_base_dir):
             print ("Transformation complete"); print()
 
 def apply_flirt(in_file, bl_t1_mni):
+<<<<<<< Updated upstream
     if os.path.exists(format_to_baseline_mni(in_file,"_T1mni.nii.gz")):
         print("FLIRT had been run for:",in_file)
     else: 
@@ -147,10 +152,36 @@ def apply_t1_flirt(in_file, bl_t1_mni):
         flt.run()
         print ("FLIRT complete"); print()
         print (in_file, "FLIRT complete"); print
+=======
+    if in_file == "none":
+        with open("/home/sf522915/PBR/PBR_t1mni_registration/error.txt", "a") as myfile:
+            myfile.write(print("no input file", print(in_file)))
+    if not os.path.exists(format_to_baseline_mni(in_file,"_affine_mni.mat","hide")):
+        print ("No matrix file exists for this in_file, using baseline T1_mni affine.mat to apply FLIRT")
+        in_matrix_file = os.path.join(os.path.split(bl_t1_mni)[0], "affine.mat")
+    else:
+        in_matrix_file = format_to_baseline_mni(in_file,"_affine_mni.mat","hide")
+    print ("Applying FLIRT to the following file...")
+    print (in_file)
+    print ("Using the following matrix...")
+    print (in_matrix_file)
+    flt = fsl.FLIRT()
+    flt.inputs.cost = "mutualinfo"
+    flt.inputs.in_file = in_file
+    flt.inputs.reference = bl_t1_mni 
+    flt.inputs.output_type = "NIFTI_GZ"
+    flt.inputs.in_matrix_file = in_matrix_file
+    flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
+    flt.inputs.out_matrix_file = format_to_baseline_mni(in_file,"_flirt.mat")
+    flt.cmdline
+    flt.run()
+    print (in_file, "FLIRT complete"); print
+>>>>>>> Stashed changes
 
 def run_pbr_align(mseid):
     from getpass import getpass
     alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
+<<<<<<< Updated upstream
     if os.path.exists(alignment_folder):
         cmd_rm = ['rm','-r', alignment_folder]
         print (cmd_rm)
@@ -159,6 +190,13 @@ def run_pbr_align(mseid):
     
     password = getpass("mspacman password: ")
     cmd = ['pbr', mseid, '-w', 'align', '-R', "-ps", password]
+=======
+    cmd = ['rm','-r', alignment_folder]
+    print (cmd)
+    proc = Popen(cmd)
+    proc.wait()
+    cmd = ['pbr', mseid, '-w', 'align', '-R']
+>>>>>>> Stashed changes
     print (cmd)
     proc = Popen(cmd)
     proc.wait()
@@ -226,7 +264,11 @@ def align_to_baseline(info):
         #align TP1's T2/lesion/FLAIR/etc to T1MNI space
         conv_aff(tp1.affines)
         conv_xfm(tp1.affines, tp1_base_dir)
+<<<<<<< Updated upstream
         apply_t1_flirt(tp1.t1_file, tp1.bl_t1_mni)
+=======
+        apply_flirt(tp1.t1_file, tp1.bl_t1_mni)
+>>>>>>> Stashed changes
         apply_flirt(tp1.t2_file, tp1.bl_t1_mni)
         apply_flirt(tp1.gad_file, tp1.bl_t1_mni)
         apply_flirt(tp1.flair_file, tp1.bl_t1_mni)
