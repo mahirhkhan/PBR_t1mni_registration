@@ -1,8 +1,3 @@
-
-# coding: utf-8
-
-# In[8]:
-
 import os
 from subprocess import Popen, PIPE
 import json
@@ -27,7 +22,6 @@ def file_label(mse,tp="tpX",count=1):
         run_pbr_align(mseid)
     with open(PBR_base_dir+"/"+mse+"/alignment/status.json") as data_file:  
         data = json.load(data_file)
-        
         #checking alignment status file for t1, t2, gad and flair 
         if len(data["t1_files"]) == 0:
             print("no {0} t1 files".format(tp))
@@ -35,7 +29,10 @@ def file_label(mse,tp="tpX",count=1):
             t1_file = "none"
         else:
             t1_file = data["t1_files"][-1]
+            
             bl_t1_mni = PBR_base_dir+'/'+mse +"/alignment/mni_angulated/"+os.path.split(t1_file)[-1].replace(".nii.gz", "_trans.nii.gz")
+           
+      
         
         if len(data["t2_files"]) == 0:
             print("no {0} t2 files".format(tp))
@@ -82,10 +79,6 @@ def conv_aff_mni(t1_mni_mat):
     print(cmd)
 
 def conv_aff(affines):
-<<<<<<< Updated upstream
-=======
-        
->>>>>>> Stashed changes
    for affine in affines:
        if not os.path.exists(affine):
            print("NO AFFINES TO CONVERT - skipping this subject")
@@ -113,13 +106,14 @@ def conv_xfm(affines,TP1_base_dir):
             invt.run()
             print ("Transformation complete"); print()
 
-def apply_flirt(in_file, bl_t1_mni):
-<<<<<<< Updated upstream
+def apply_flirt(in_file, bl_t1_mni, mseid):
     if os.path.exists(format_to_baseline_mni(in_file,"_T1mni.nii.gz")):
         print("FLIRT had been run for:",in_file)
     else: 
         if not os.path.exists(in_file):
             print(in_file, "this file does not exist")
+        #if not os.path.exists(bl_t1_mni):
+            #run_pbr_align(mseid)
         else:
             in_matrix = format_to_baseline_mni(in_file,"_affine_mni.mat")
             print ("Applying FLIRT to the following file...")
@@ -136,9 +130,11 @@ def apply_flirt(in_file, bl_t1_mni):
             print ("FLIRT complete"); print()
             print (in_file, "FLIRT complete"); print
 
-def apply_t1_flirt(in_file, bl_t1_mni):
+def apply_t1_flirt(in_file, bl_t1_mni, mseid):
     if os.path.exists(format_to_baseline_mni(in_file,"_T1mni.nii.gz")):
         print("FLIRT had been run for:",in_file)
+    if not os.path.exists(bl_t1_mni):
+        run_pbr_align(mseid)
     else: 
         in_matrix = os.path.split(bl_t1_mni)[0] + "/affine.mat"
         flt = fsl.FLIRT()
@@ -152,54 +148,27 @@ def apply_t1_flirt(in_file, bl_t1_mni):
         flt.run()
         print ("FLIRT complete"); print()
         print (in_file, "FLIRT complete"); print
-=======
-    if in_file == "none":
-        with open("/home/sf522915/PBR/PBR_t1mni_registration/error.txt", "a") as myfile:
-            myfile.write(print("no input file", print(in_file)))
-    if not os.path.exists(format_to_baseline_mni(in_file,"_affine_mni.mat","hide")):
-        print ("No matrix file exists for this in_file, using baseline T1_mni affine.mat to apply FLIRT")
-        in_matrix_file = os.path.join(os.path.split(bl_t1_mni)[0], "affine.mat")
-    else:
-        in_matrix_file = format_to_baseline_mni(in_file,"_affine_mni.mat","hide")
-    print ("Applying FLIRT to the following file...")
-    print (in_file)
-    print ("Using the following matrix...")
-    print (in_matrix_file)
-    flt = fsl.FLIRT()
-    flt.inputs.cost = "mutualinfo"
-    flt.inputs.in_file = in_file
-    flt.inputs.reference = bl_t1_mni 
-    flt.inputs.output_type = "NIFTI_GZ"
-    flt.inputs.in_matrix_file = in_matrix_file
-    flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
-    flt.inputs.out_matrix_file = format_to_baseline_mni(in_file,"_flirt.mat")
-    flt.cmdline
-    flt.run()
-    print (in_file, "FLIRT complete"); print
->>>>>>> Stashed changes
 
 def run_pbr_align(mseid):
     from getpass import getpass
     alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
-<<<<<<< Updated upstream
     if os.path.exists(alignment_folder):
         cmd_rm = ['rm','-r', alignment_folder]
         print (cmd_rm)
         proc = Popen(cmd_rm)
         proc.wait()
-    
-    password = getpass("mspacman password: ")
-    cmd = ['pbr', mseid, '-w', 'align', '-R', "-ps", password]
-=======
-    cmd = ['rm','-r', alignment_folder]
-    print (cmd)
-    proc = Popen(cmd)
-    proc.wait()
-    cmd = ['pbr', mseid, '-w', 'align', '-R']
->>>>>>> Stashed changes
-    print (cmd)
-    proc = Popen(cmd)
-    proc.wait()
+        password = getpass("mspacman password: ")
+        cmd = ['pbr', mseid, '-w', 'align', '-R', "-ps", password]
+        print (cmd)
+        proc = Popen(cmd)
+        proc.wait()
+    else:
+        password = getpass("mspacman password: ")
+        cmd = ['pbr', mseid, '-w', 'align', '-R', "-ps", password]
+        print (cmd)
+        proc = Popen(cmd)
+        proc.wait()
+        
    
 def check_mni_angulated_folder(mseid):
     filepath = '/data/henry7/PBR/subjects/{0}/alignment/mni_angulated'.format(mseid)
@@ -264,14 +233,10 @@ def align_to_baseline(info):
         #align TP1's T2/lesion/FLAIR/etc to T1MNI space
         conv_aff(tp1.affines)
         conv_xfm(tp1.affines, tp1_base_dir)
-<<<<<<< Updated upstream
-        apply_t1_flirt(tp1.t1_file, tp1.bl_t1_mni)
-=======
-        apply_flirt(tp1.t1_file, tp1.bl_t1_mni)
->>>>>>> Stashed changes
-        apply_flirt(tp1.t2_file, tp1.bl_t1_mni)
-        apply_flirt(tp1.gad_file, tp1.bl_t1_mni)
-        apply_flirt(tp1.flair_file, tp1.bl_t1_mni)
+        apply_t1_flirt(tp1.t1_file, tp1.bl_t1_mni, mseid)
+        apply_flirt(tp1.t2_file, tp1.bl_t1_mni, mseid)
+        apply_flirt(tp1.gad_file, tp1.bl_t1_mni, mseid)
+        apply_flirt(tp1.flair_file, tp1.bl_t1_mni,mseid)
     else:
         print ("Baseline already has files in T1MNI space, skipping this step"); print()
         
@@ -284,12 +249,12 @@ def align_to_baseline(info):
         tp2 = file_label(info[2])
         conv_aff(tp2.affines)
         conv_xfm(tp2.affines, tp1_base_dir)
-        apply_t1_flirt(tp2.t1_file, tp1.bl_t1_mni)
-        apply_flirt(tp2.t2_file, tp1.bl_t1_mni)
-        apply_flirt(tp2.gad_file, tp1.bl_t1_mni)
-        apply_flirt(tp2.flair_file, tp1.bl_t1_mni)
+        apply_t1_flirt(tp2.t1_file, tp1.bl_t1_mni, mseid)
+        apply_flirt(tp2.t2_file, tp1.bl_t1_mni, mseid)
+        apply_flirt(tp2.gad_file, tp1.bl_t1_mni, mseid)
+        apply_flirt(tp2.flair_file, tp1.bl_t1_mni, mseid)
+    
 
-#call functions
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('ms', nargs="+")
@@ -315,3 +280,5 @@ if __name__ == '__main__':
             print ("no msid tracking txt file exists")
             info = False
             continue
+       
+
