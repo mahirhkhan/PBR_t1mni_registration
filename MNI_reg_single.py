@@ -9,6 +9,7 @@ import json
 from nipype.interfaces import fsl
 from nipype.interfaces.fsl import RobustFOV, Reorient2Std
 from nipype.interfaces.c3 import C3dAffineTool
+from glob import glob
 import argparse
 
 PBR_base_dir = '/data/henry7/PBR/subjects'
@@ -22,8 +23,11 @@ class imageData():
         self.affines = affines
         self.bl_t1_mni = bl_t1_mni
 
-def file_label(mse,tp="tpX",count=1):
-    with open(PBR_base_dir+"/"+mse+"/alignment/status.json") as data_file:  
+def file_label(mseid,tp="tpX",count=1):
+    check_file = PBR_base_dir+"/"+mseid+"/alignment/status.json"
+    if not os.path.exists(check_file):
+        run_pbr_align(mseid)
+    with open(check_file) as data_file:  
         data = json.load(data_file)
         
         #checking alignment status file for t1, t2, gad and flair 
@@ -33,7 +37,7 @@ def file_label(mse,tp="tpX",count=1):
             t1_file = "none"
         else:
             t1_file = data["t1_files"][-1]
-            bl_t1_mni = PBR_base_dir+'/'+mse +"/alignment/mni_angulated/"+os.path.split(t1_file)[-1].replace(".nii.gz", "_trans.nii.gz")
+            bl_t1_mni = PBR_base_dir+'/'+mseid+"/alignment/mni_angulated/"+os.path.split(t1_file)[-1].replace(".nii.gz", "_trans.nii.gz")
         
         if len(data["t2_files"]) == 0:
             print("no {0} t2 files".format(tp))
@@ -67,7 +71,7 @@ def file_label(mse,tp="tpX",count=1):
             #write error script
         else:
             count += 1
-            file_label(mse,tp,count)
+            file_label(mseid,tp,count)
     else:
         return imageData(t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni)
 
@@ -254,8 +258,8 @@ if __name__ == '__main__':
     print("The mseid(s) to be tested:", mse)
 
     for mseid in mse:
-        grab_file = glob('/data/henry7/PBR/subjects/{}/alignment/mni_angulated/*.nii.gz'.format(mseid))
-        msid = grab_file.split('/')[-1].split('-')[0]
+        grab_file = glob('/data/henry7/PBR/subjects/mse5768/nii/*.nii.gz')
+        msid = grab_file[0].split('/')[-1].split('-')[0]
         text_file = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_ms/{0}.txt'.format(msid)
         if os.path.exists(text_file):
             with open(text_file,'r') as f:
@@ -271,9 +275,12 @@ if __name__ == '__main__':
             continue
 
 
-# In[10]:
+# In[6]:
+
+from glob import glob
 
 
+print msid
 
 
 # success: mse4334 (tp2.t1_file error)
