@@ -258,7 +258,7 @@ if __name__ == '__main__':
     print("The mseid(s) to be tested:", mse)
 
     for mseid in mse:
-        grab_file = glob('/data/henry7/PBR/subjects/mse5768/nii/*.nii.gz')
+        grab_file = glob('/data/henry7/PBR/subjects/{}/nii/*.nii.gz'.format(mseid))
         msid = grab_file[0].split('/')[-1].split('-')[0]
         text_file = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_ms/{0}.txt'.format(msid)
         if os.path.exists(text_file):
