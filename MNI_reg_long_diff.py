@@ -202,8 +202,10 @@ def get_tps(msid,mseid):
         return False
 
 def sub_gad_nogad(gad_file, t1_file):
-    if os.path.exists(gad_file):
-       if os.path.exists(t1_file):
+    gad_mni = os.path.split(gad_file)[0] +"/baseline_mni/"+ os.path.split(gad_file)[-1].replace(".nii.gz","_T1mni.nii.gz")
+    t1_mni = os.path.split(t1_file)[0] +"/baseline_mni/"+ os.path.split(t1_file)[-1].replace(".nii.gz","_T1mni.nii.gz")
+    if os.path.exists(gad_mni):
+       if os.path.exists(t1_mni):
             
             from nipype.interfaces.fsl import BinaryMaths
             gad_f = os.path.split(gad_file)[-1].replace(".nii.gz", "")
@@ -212,8 +214,8 @@ def sub_gad_nogad(gad_file, t1_file):
             out_file = os.path.split(t1_file)[0] +"/baseline_mni/"+ gad_f +"_"+ t1_f
             maths = BinaryMaths()
             maths.inputs.operation= "sub"
-            maths.inputs.in_file = gad_file
-            maths.inputs.operand_file = t1_file
+            maths.inputs.in_file = gad_mni
+            maths.inputs.operand_file = t1_mni
             maths.inputs.out_file = out_file
             print("your GAD difference map is:", out_file)
             maths.cmdline
