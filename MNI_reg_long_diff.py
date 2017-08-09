@@ -1,4 +1,5 @@
 import os
+from glob import glob
 from subprocess import Popen, PIPE
 import json
 from nipype.interfaces import fsl
@@ -202,9 +203,10 @@ def get_tps(msid,mseid):
         return False
 
 def sub_gad_nogad(gad_file, t1_file):
-    if os.path.exists(gad_file):
-       if os.path.exists(t1_file):
-            
+    gad_mni = os.path.split(gad_file)[0] +"/baseline_mni/"+ os.path.split(gad_file)[-1].replace(".nii.gz","_T1mni.nii.gz")
+    t1_mni = os.path.split(t1_file)[0] +"/baseline_mni/"+ os.path.split(t1_file)[-1].replace(".nii.gz","_T1mni.nii.gz")
+    if os.path.exists(gad_mni):
+        if os.path.exists(t1_mni):
             from nipype.interfaces.fsl import BinaryMaths
             gad_f = os.path.split(gad_file)[-1].replace(".nii.gz", "")
             t = os.path.split(t1_file)[-1]
@@ -212,8 +214,8 @@ def sub_gad_nogad(gad_file, t1_file):
             out_file = os.path.split(t1_file)[0] +"/baseline_mni/"+ gad_f +"_"+ t1_f
             maths = BinaryMaths()
             maths.inputs.operation= "sub"
-            maths.inputs.in_file = gad_file
-            maths.inputs.operand_file = t1_file
+            maths.inputs.in_file = gad_mni
+            maths.inputs.operand_file = t1_mni
             maths.inputs.out_file = out_file
             print("your GAD difference map is:", out_file)
             maths.cmdline
@@ -221,12 +223,31 @@ def sub_gad_nogad(gad_file, t1_file):
     else:
         print("did not have GAD file to produce difference map")
 
+def check_for_trans_file(mse_id):
+    nii_folder = '/data/henry7/PBR/subjects/{}/nii'.format(mse_id)
+    #print(nii_folder)
+    trans_file = glob('/data/henry7/PBR/subjects/{}/alignment/mni_angulated/*_trans.nii.gz'.format(mse_id))
+    print(trans_file)
+    jim_roi = glob(nii_folder + '/*.roi')
+    if not (len(trans_file) > 0):
+        print('deleting alignment folder due to lack of trans file')
+        if (len(jim_roi) > 0):
+            os.system('mkdir {}/tca_roi'.format(nii_folder))
+            os.system('mv {}/*.hdr {}/tca_roi'.format(nii_folder, nii_folder))
+            os.system('mv {}/*.img {}/tca_roi'.format(nii_folder, nii_folder))
+            os.system('mv {}/*.roi {}/tca_roi'.format(nii_folder, nii_folder))
+            os.system('rm -r /data/henry7/PBR/subjects/{}/alignment'.format(mse_id))
+        else:
+            os.system('rm -r /data/henry7/PBR/subjects/{}/alignment'.format(mse_id))
+    else:
+        print('trans file exists in baseline')
+        print(trans_file)
 
 def align_to_baseline(info):
     #1) check if TP1 has mni_angulated folder, even if TP1 = TPx
     
     check_mni_angulated_folder(info[1])
-    
+   
     #2) check if TP1 has /baseline_mni folder
     
     tp1_base_dir = '/data/henry7/PBR/subjects/{0}/alignment'.format(info[1])
@@ -263,7 +284,6 @@ def align_to_baseline(info):
         apply_flirt(tp2.gad_file, tp1.bl_t1_mni)
         apply_flirt(tp2.flair_file, tp1.bl_t1_mni)
         sub_gad_nogad(tp2.gad_file, tp2.t1_file)
-    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -278,6 +298,8 @@ if __name__ == '__main__':
         if os.path.exists(text_file):
             with open(text_file,'r') as f:
                 timepoints = f.readlines()
+                baseline_mse = timepoints[0].replace("\n","")
+                check_for_trans_file(baseline_mse)
                 for timepoint in timepoints:
                     mse_bl = timepoints[0].replace("\n","")
                     mseid = timepoint.replace("\n","")
