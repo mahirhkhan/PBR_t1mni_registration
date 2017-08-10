@@ -243,9 +243,18 @@ def check_for_trans_file(mse_id):
         print('trans file exists in baseline')
         print(trans_file)
 
+def lesion_mask(mseid,bl_t1_mni):
+    lst_mask = glob("/data/henry7/PBR/subjects/{0}/mindcontrol/*{0}*FLAIR*/lst/lst_edits/no_FP_filled_FN*.nii.gz".format(mseid))
+    if len(lst_mask) > 0:
+        lst_file = lst_mask[0]
+        apply_t1_flirt(lst_file,bl_t1_mni)
+        print ('lst file has been registered to T1 MNI space'); print ()
+    else:
+        print ('No lesion mask to register, moving on...')
+
 def align_to_baseline(info):
     #1) check if TP1 has mni_angulated folder, even if TP1 = TPx
-    
+ 
     check_mni_angulated_folder(info[1])
    
     #2) check if TP1 has /baseline_mni folder
@@ -267,6 +276,7 @@ def align_to_baseline(info):
         apply_flirt(tp1.gad_file, tp1.bl_t1_mni)
         apply_flirt(tp1.flair_file, tp1.bl_t1_mni)
         sub_gad_nogad(tp1.gad_file, tp1.t1_file)
+        lesion_mask(info[1],tp1.bl_t1_mni)
     else:
         print ("Baseline already has files in T1MNI space, skipping this step"); print()
         
@@ -284,6 +294,7 @@ def align_to_baseline(info):
         apply_flirt(tp2.gad_file, tp1.bl_t1_mni)
         apply_flirt(tp2.flair_file, tp1.bl_t1_mni)
         sub_gad_nogad(tp2.gad_file, tp2.t1_file)
+        lesion_mask(info[2],tp1.bl_t1_mni)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
