@@ -6,9 +6,10 @@ from nipype.interfaces import fsl
 from nipype.interfaces.fsl import RobustFOV, Reorient2Std
 from nipype.interfaces.c3 import C3dAffineTool
 import argparse
+from getpass import getpass
 
 PBR_base_dir = '/data/henry7/PBR/subjects'
-
+password = getpass("mspacman password: ")
 class imageData():
     def __init__(self, t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni):
         self.t1_file = t1_file
@@ -144,7 +145,7 @@ def apply_t1_flirt(in_file, bl_t1_mni):
         print (in_file, "FLIRT complete"); print
 
 def run_pbr_align(mseid):
-    from getpass import getpass
+    #from getpass import getpass
     alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
     if os.path.exists(alignment_folder):
         cmd_rm = ['rm','-r', alignment_folder]
@@ -152,7 +153,7 @@ def run_pbr_align(mseid):
         proc = Popen(cmd_rm)
         proc.wait()
     
-    password = getpass("mspacman password: ")
+    #password = getpass("mspacman password: ")
     cmd = ['pbr', mseid, '-w', 'align', '-R', "-ps", password]
     print (cmd)
     proc = Popen(cmd)
@@ -251,7 +252,10 @@ def lesion_mask(mseid,bl_t1_mni):
         print ('lst file has been registered to T1 MNI space'); print ()
     else:
         print ('No lesion mask to register, moving on...')
+<<<<<<< HEAD
 
+=======
+>>>>>>> 67e68c43e51fd2425eb4e456e039253b31f1c823
 def align_to_baseline(info):
     #1) check if TP1 has mni_angulated folder, even if TP1 = TPx
  
@@ -281,7 +285,6 @@ def align_to_baseline(info):
         print ("Baseline already has files in T1MNI space, skipping this step"); print()
         
     #3) check if TP1 = TPx
-
     if info[1] == info[2]:
         print ('No need to apply additional alignment, {0} is TP1'.format(info[2])); print()
     else:
