@@ -127,41 +127,21 @@ def apply_flirt(in_file, bl_t1_mni):
             print ("Applying FLIRT to the following file...")
             print (in_file)
             flt = fsl.FLIRT()
-            #flt.inputs.cost = "mutualinfo"
-            flt.inputs.interp = "nearestneighbour"
+            flt.inputs.cost = "mutualinfo"
+            #flt.inputs.interp = "nearestneighbour"
             flt.inputs.dof = 6
             flt.inputs.in_file = in_file
             flt.inputs.reference = bl_t1_mni 
             flt.inputs.output_type = "NIFTI_GZ"
             flt.inputs.in_matrix_file = in_matrix
             flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
-            flt.inputs.apply_xfm = True
+            #flt.inputs.apply_xfm = True
             flt.cmdline
             flt.run()
             print(flt.cmdline)
             print ("FLIRT complete"); print()
             print (in_file, "FLIRT complete"); print
-"""
-def apply_t1_flirt(in_file, bl_t1_mni):
-    if os.path.exists(format_to_baseline_mni(in_file,"_T1mni.nii.gz")):
-        print("FLIRT had been run for:",in_file)
-    else: 
-        in_matrix = os.path.split(bl_t1_mni)[0] + "/affine.mat"
-        flt = fsl.FLIRT()
-        flt.inputs.cost = "mutualinfo"
-        flt.inputs.dof = 6
-        flt.inputs.in_file = in_file
-        flt.inputs.reference = bl_t1_mni 
-        flt.inputs.output_type = "NIFTI_GZ"
-        flt.inputs.in_matrix_file = in_matrix
-        flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
-        flt.inputs.apply_xfm = True
-        flt.cmdline
-        flt.run()
-        print(flt.cmdline)
-        print ("FLIRT complete"); print()
-        print (in_file, "FLIRT complete"); print
-"""
+
 ######
 
 
