@@ -244,6 +244,30 @@ def apply_lesion_flirt(lst_file, in_file):
     else:
         print("no LST file to register")
 
+def register_wm_mask(in_file):
+    new_in = os.path.split(in_file)[-1]
+    msid = new_in.split("-")[0]
+    mse = new_in.split("-")[1]
+    msid = "ms" + msid.replace("ms", "").zfill(4)
+    mse = "mse" + mse.replace("mse", "").zfill(4)
+    gtech_path = "/data/pelletier1/genentech/sienax_yr89_lst_lesions/"#+ msid + "-" + mse
+    for msid_mse in os.listdir(gtech_path):
+        if msid_mse.startswith(msid + "-" + mse):
+            print(msid_mse, gtech_path, "THIS PATH EXISTS")
+            flt = fsl.FLIRT()
+            flt.inputs.interp = "nearestneighbour"
+            flt.inputs.dof = 6 
+            flt.inputs.in_file = gtech_path + "/"+ msid_mse + "/wm_mask.nii.gz" 
+            flt.inputs.reference = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
+            flt.inputs.output_type = "NIFTI_GZ"
+            #flt.inputs.out_matrix_file = combined_affine
+            flt.inputs.out_file = os.path.split(format_to_baseline_mni(in_file,"_affineMNI.mat"))[0] + "/WM_MNI.nii.gz"
+            flt.cmdline
+            flt.run()
+            print(flt.cmdline)
+        
+    
+
 def run_pbr_align(mseid):
     #from getpass import getpass
     alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
@@ -358,6 +382,7 @@ def align_to_baseline(info):
         apply_tp2_flirt(tp2.gad_file, tp1.bl_t1_mni, tp2.affines)
         apply_tp2_flirt(tp2.flair_file, tp1.bl_t1_mni,tp2.affines)
         apply_lesion_flirt(tp2.lst_file,tp2.t1_file)
+        register_wm_mask(tp2.t1_file)
    
 
 if __name__ == '__main__':
