@@ -275,15 +275,12 @@ def apply_tp2_flirt(in_file,bl_t1_mni, affines):
 def apply_lesion_flirt(lst_file, flair_file, t1_file):
     lst = os.path.split(lst_file)[-1]
     if lst.startswith("no_FP"):
-        print(lst_file, "THIS IS THE LST FILE")
         flt = fsl.FLIRT()
-        #flt.inputs.cost = "mutualinfo"
         flt.inputs.interp = "nearestneighbour"
         flt.inputs.dof = 6
         flt.inputs.in_file = lst_file
         flt.inputs.reference = format_to_baseline_mni(t1_file,"_T1mni.nii.gz") #format_to_baseline_mni(flair_file,"_T1mni.nii.gz")
         flt.inputs.output_type = "NIFTI_GZ"
-        #affine_mni = format_to_baseline_mni(t1_file,"_affineMNI.mat")
         affine_mni = format_to_baseline_mni(t1_file,"_T1mni.nii.gz").replace("_T1mni.nii.gz","_affineMNI.mat")
         #affine_mni = format_to_baseline_mni(flair_file,"_T1mni.nii.gz").replace("_T1mni.nii.gz","_affine_mni_FINAL.mat")
         #affine_mni = format_to_baseline_mni(flair_file, "_affine_mni_FINAL.mat")
@@ -292,10 +289,6 @@ def apply_lesion_flirt(lst_file, flair_file, t1_file):
         flt.inputs.out_file = os.path.split(format_to_baseline_mni(t1_file,"_T1mni.nii.gz"))[0] + "/lesion_MNI.nii.gz"
         flt.cmdline
         flt.run()
-        print(flair_file, "FLAIR FILE", t1_file, "T1 FILE")
-        #print("registering lesion to T1MNI", flt.cmdline)
-        #print ("FLIRT complete"); print()
-        #print (in_file, "FLIRT complete"); print
     else:
         print("no LST file to register")
 

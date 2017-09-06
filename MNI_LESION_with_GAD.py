@@ -120,21 +120,21 @@ def create_flair_lesions(mseid, msid):
                 flair_file = format_to_baseline_mni(flair_file, "_T1mni.nii.gz")
                 print(flair_file)
 
-        if flair_file.endswith(".nii.gz"):
 
-            flair_MNI = str(glob(mni_long + "ms*.nii.gz")[0])
-            wm_MNI = str(glob(mni_long + "wm*.nii.gz")[0])
-            lesion_MNI = str(glob(mni_long + "lesion_mse*.nii.gz")[0])
-            cmd = ["fslmaths", lesion_MNI, "-bin", lesion_MNI.replace("lesion_", "lesion_bin_")]
+        flair_MNI = str(glob(mni_long + "ms*.nii.gz")[0])
+        wm_MNI = str(glob(mni_long + "wm*.nii.gz")[0])
+        lesion_MNI = str(glob(mni_long + "lesion_mse*.nii.gz")[0])
+        cmd = ["fslmaths", lesion_MNI, "-bin", lesion_MNI.replace("lesion_", "lesion_bin_")]
+        proc = Popen(cmd, stdout=PIPE)
+        output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
+        lesion_bin_MNI = str(glob(mni_long + "lesion_bin_mse*.nii.gz")[0])
+        if os.path.split(flair_file)[-1] == os.path.split(flair_MNI)[-1]:
+            print("this is the flair file the lesion mask came from", flair_file)
+            cmd = ["python", "/home/sf522915/PBR_t1mni_registration", "MNI_t1bl_new2.py", msid]
             proc = Popen(cmd, stdout=PIPE)
             output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
-            lesion_bin_MNI = str(glob(mni_long + "lesion_bin_mse*.nii.gz")[0])
-
-            if os.path.split(flair_file)[-1] == os.path.split(flair_MNI)[-1]:
-                 print("this is the flair file the lesion mask came from", flair_file)
-            
-            else:
-            #if flair_file.endswith(".nii.gz"):#os.path.exists(flair_file):
+        else:
+            if os.path.exists(flair_file):
                 maths = BinaryMaths()
                 maths.inputs.operation= "sub"
                 maths.inputs.in_file = flair_file
@@ -222,7 +222,19 @@ def create_flair_lesions(mseid, msid):
                 cmd = ["fslview", wm_diff, flair_MNI,flair_file, lesion_MNI, lesion_thr]
                 proc = Popen(cmd, stdout=PIPE)
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
-              
+
+def make_gad_mask(mseid): 
+    if not os.path.exists(PBR_base_dir+"/"+mse+"/alignment/status.json"):
+        run_pbr_align(mseid)
+        with open(PBR_base_dir+"/"+mse+"/alignment/status.json") as data_file:  
+            data = json.load(data_file)
+            if len(data["gad_files"]) == 0:
+                print("no {0} gad files".format(tp))
+                gad_file ="none"
+            else:
+                gad_file = data["gad_files"][-1]
+    if os.path.exists
+     
            
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

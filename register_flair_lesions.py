@@ -88,7 +88,6 @@ def conv_aff(affines):
            proc = Popen(cmd, stdout=PIPE)
            proc.wait()
            print ("Conversion complete"); print
-           print(cmd)
 
 def conv_xfm(affines,TP1_base_dir):
     for affine in affines:
@@ -104,7 +103,6 @@ def conv_xfm(affines,TP1_base_dir):
             invt.inputs.out_file = format_to_baseline_mni(affine,"_mni.mat")
             invt.cmdline
             invt.run()
-            print(invt.cmdline)
             print ("Transformation complete"); print()
 
 def apply_flirt(in_file, bl_t1_mni):
@@ -126,7 +124,6 @@ def apply_flirt(in_file, bl_t1_mni):
             flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
             flt.cmdline
             flt.run()
-            print(flt.cmdline)
             print ("FLIRT complete"); print()
             print (in_file, "FLIRT complete"); print
 
@@ -144,7 +141,6 @@ def apply_t1_flirt(in_file, bl_t1_mni):
         flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
         flt.cmdline
         flt.run()
-        print(flt.cmdline)
         print ("FLIRT complete"); print()
         print (in_file, "FLIRT complete"); print
 
