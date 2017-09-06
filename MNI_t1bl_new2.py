@@ -35,6 +35,7 @@ def file_label(mse,tp="tpX",count=1):
         else:
             t1_file = data["t1_files"][-1]
             bl_t1_mni = PBR_base_dir+'/'+mse +"/alignment/mni_angulated/"+os.path.split(t1_file)[-1].replace(".nii.gz", "_trans.nii.gz")
+            
         
         if len(data["t2_files"]) == 0:
             print("no {0} t2 files".format(tp))
@@ -66,6 +67,34 @@ def file_label(mse,tp="tpX",count=1):
         else:
             lst_file = lst_mask[0]
             #return ImageData(lst_file)
+    lesion_MNI = PBR_base_dir+ mseid + "/alignment/baseline_mni/lesion_MNI.nii.gz"
+    mni_long = PBR_base_dir + msid + "/MNI/"
+    wm_MNI = PBR_base_dir+ mseid + "/alignment/baseline_mni/WM_MNI.nii.gz"
+    
+    if os.path.exists(wm_MNI):
+        print(wm_MNI)
+        if not os.path.exists(mni_long):
+            os.mkdir(mni_long)
+        cmd = ["fslmaths", wm_MNI, "-bin", wm_MNI]
+        proc = Popen(cmd, stdout=PIPE)
+        output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
+
+        shutil.copyfile(wm_MNI,mni_long + "/wm_"+mseid + ".nii.gz")
+        print(wm_MNI,mni_long + "/wm_"+mseid + ".nii.gz")
+
+    if os.path.exists(lesion_MNI):
+        print(lesion_MNI)
+    
+        if not os.path.exists(mni_long):
+             os.mkdir(mni_long)
+             print(mni_long)
+        if not os.path.exists(mni_long+ "/lesion_"+mseid + ".nii.gz"):
+            shutil.copyfile(lesion_MNI,mni_long + "/lesion_"+mseid + ".nii.gz")
+            print(lesion_MNI,mni_long + "/lesion_"+mseid + ".nii.gz")
+        flair_path = os.path.split(lesion_MNI)[0] +'/'+ os.path.split(flair_file)[-1]
+
+        shutil.copyfile(flair_path, mni_long +'/'+ os.path.split(flair_path)[-1])
+        print(flair_path, mni_long +'/'+ os.path.split(flair_path)[-1])
     
     #run program again if t1_file = "none" or t2_file = "none", but only run 2 iterations of run_pbr_align to avoid recursive errors
     if t1_file == "none": #or t2_file == "none":
@@ -77,7 +106,7 @@ def file_label(mse,tp="tpX",count=1):
             file_label(mse,tp,count)
     else:
         return imageData(t1_file, t2_file, gad_file, flair_file, affines, bl_t1_mni, lst_file)
-####
+
 def conv_aff_mni(t1_mni_mat):
     cmd = ["c3d_affine_tool", "-itk", t1_mni_mat, "-o", t1_mni_mat.split(".")[0]+ ".mat"]
     proc = Popen(cmd, stdout=PIPE)
@@ -116,33 +145,32 @@ def conv_xfm(affines,TP1_base_dir):
             print(invt.cmdline)
             print ("Transformation complete"); print()
 
-def apply_flirt(in_file, bl_t1_mni):
+def apply_flirt(in_file, bl_t1_mni): 
     if os.path.exists(format_to_baseline_mni(in_file,"_T1mni.nii.gz")):
         print("FLIRT had been run for:",in_file)
     else: 
         if not os.path.exists(in_file):
             print(in_file, "this file does not exist")
         else:
+            shutil.copyfile(bl_t1_mni, os.path.split(bl_t1_mni)[0].replace("/mni_angulated/", "/baseline_mni/") + os.path.split(bl_t1_mni)[1].replace("trans.nii.gz", "T1mni.nii.gz"))
             in_matrix = format_to_baseline_mni(in_file,"_affine_mni.mat")
             print ("Applying FLIRT to the following file...")
             print (in_file)
             flt = fsl.FLIRT()
             flt.inputs.cost = "mutualinfo"
-            #flt.inputs.interp = "nearestneighbour"
             flt.inputs.dof = 6
             flt.inputs.in_file = in_file
             flt.inputs.reference = bl_t1_mni 
             flt.inputs.output_type = "NIFTI_GZ"
             flt.inputs.in_matrix_file = in_matrix
             flt.inputs.out_file = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
-            #flt.inputs.apply_xfm = True
             flt.cmdline
             flt.run()
             print(flt.cmdline)
             print ("FLIRT complete"); print()
-            print (in_file, "FLIRT complete"); print
-
-######
+            print (in_file, "FLIRT complete"); 
+            print(bl_t1_mni, "THIS IS THE BASELINE T1 MNI")
+            
 
 
 ##################### FOR TIMEPOINT 2#########################################
@@ -222,7 +250,7 @@ def apply_tp2_flirt(in_file,bl_t1_mni, affines):
                 print ("FLIRT complete"); print()
                 print (in_file, "FLIRT complete"); print
 
-def apply_lesion_flirt(lst_file, in_file):
+"""def apply_lesion_flirt(lst_file, in_file):
     lst = os.path.split(lst_file)[-1]
     if lst.startswith("no_FP"):
         print(lst_file, "THIS IS THE LST FILE")
@@ -242,6 +270,33 @@ def apply_lesion_flirt(lst_file, in_file):
         print ("FLIRT complete"); print()
         print (in_file, "FLIRT complete"); print
     else:
+        print("no LST file to register")"""
+
+def apply_lesion_flirt(lst_file, flair_file, t1_file):
+    lst = os.path.split(lst_file)[-1]
+    if lst.startswith("no_FP"):
+        print(lst_file, "THIS IS THE LST FILE")
+        flt = fsl.FLIRT()
+        #flt.inputs.cost = "mutualinfo"
+        flt.inputs.interp = "nearestneighbour"
+        flt.inputs.dof = 6
+        flt.inputs.in_file = lst_file
+        flt.inputs.reference = format_to_baseline_mni(t1_file,"_T1mni.nii.gz") #format_to_baseline_mni(flair_file,"_T1mni.nii.gz")
+        flt.inputs.output_type = "NIFTI_GZ"
+        #affine_mni = format_to_baseline_mni(t1_file,"_affineMNI.mat")
+        affine_mni = format_to_baseline_mni(t1_file,"_T1mni.nii.gz").replace("_T1mni.nii.gz","_affineMNI.mat")
+        #affine_mni = format_to_baseline_mni(flair_file,"_T1mni.nii.gz").replace("_T1mni.nii.gz","_affine_mni_FINAL.mat")
+        #affine_mni = format_to_baseline_mni(flair_file, "_affine_mni_FINAL.mat")
+        flt.inputs.in_matrix_file = affine_mni
+        flt.inputs.apply_xfm = True
+        flt.inputs.out_file = os.path.split(format_to_baseline_mni(t1_file,"_T1mni.nii.gz"))[0] + "/lesion_MNI.nii.gz"
+        flt.cmdline
+        flt.run()
+        print(flair_file, "FLAIR FILE", t1_file, "T1 FILE")
+        #print("registering lesion to T1MNI", flt.cmdline)
+        #print ("FLIRT complete"); print()
+        #print (in_file, "FLIRT complete"); print
+    else:
         print("no LST file to register")
 
 def register_wm_mask(in_file):
@@ -260,6 +315,7 @@ def register_wm_mask(in_file):
             flt.inputs.in_file = gtech_path + "/"+ msid_mse + "/wm_mask.nii.gz" 
             flt.inputs.reference = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
             flt.inputs.output_type = "NIFTI_GZ"
+            #flt.inputs.apply_xfm = True
             #flt.inputs.out_matrix_file = combined_affine
             flt.inputs.out_file = os.path.split(format_to_baseline_mni(in_file,"_affineMNI.mat"))[0] + "/WM_MNI.nii.gz"
             flt.cmdline
@@ -347,6 +403,11 @@ def check_for_trans_file(mse_id):
         print('trans file exists in baseline')
         print(trans_file)
 
+def remove_mat(affines):
+    for affine in affines:
+        mat = affine.replace(".txt", ".mat")
+        os.remove(mat)
+
 
 def align_to_baseline(info):
     #1) check if TP1 has mni_angulated folder, even if TP1 = TPx
@@ -362,6 +423,7 @@ def align_to_baseline(info):
     conv_aff_mni(t1_mni_mat)
     
     tp1 = file_label(info[1],tp="BL")
+    
        
     #3) check if TP1 = TPx
     if info[1] == info[2]:
@@ -371,6 +433,7 @@ def align_to_baseline(info):
         apply_flirt(tp1.t2_file, tp1.bl_t1_mni)
         apply_flirt(tp1.gad_file, tp1.bl_t1_mni)
         apply_flirt(tp1.flair_file, tp1.bl_t1_mni)
+        #remove_mat(tp1.affines)
     else:
 
         print ('{0} will need additional alignment'.format(info[2]))
@@ -381,8 +444,9 @@ def align_to_baseline(info):
         apply_tp2_flirt(tp2.t2_file, tp1.bl_t1_mni, tp2.affines)
         apply_tp2_flirt(tp2.gad_file, tp1.bl_t1_mni, tp2.affines)
         apply_tp2_flirt(tp2.flair_file, tp1.bl_t1_mni,tp2.affines)
-        apply_lesion_flirt(tp2.lst_file,tp2.t1_file)
+        apply_lesion_flirt(tp2.lst_file, tp2.t1_file, tp2.t1_file)
         register_wm_mask(tp2.t1_file)
+        #remove_mat(tp2.affines)
    
 
 if __name__ == '__main__':
