@@ -304,7 +304,7 @@ def register_wm_mask(in_file):
             print(msid_mse, gtech_path, "THIS PATH EXISTS")
             flt = fsl.FLIRT()
             flt.inputs.interp = "nearestneighbour"
-            flt.inputs.dof = 6 
+            #flt.inputs.dof = 6 
             flt.inputs.in_file = gtech_path + "/"+ msid_mse + "/wm_mask.nii.gz" 
             flt.inputs.reference = format_to_baseline_mni(in_file,"_T1mni.nii.gz")
             flt.inputs.output_type = "NIFTI_GZ"
