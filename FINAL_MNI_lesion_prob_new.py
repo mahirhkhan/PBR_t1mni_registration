@@ -203,7 +203,7 @@ def create_flair_lesions(mseid, msid):
 
 
             #dilating the lesion mask and subtracting the gray matter 
-            cmd = ["fslmaths",lesion_bin_MNI , "-dilM",  "-sub", gm_MNI,"-add", lesion_bin_MNI,"-sub",base_dir+ "/thr.nii.gz", "-thr", ".1","-bin", lesion_dil]  #"-sub", no_wm,
+            cmd = ["fslmaths",lesion_bin_MNI , "-dilM",  "-sub", gm_MNI,"-thr", ".1","-bin", lesion_dil]
             proc = Popen(cmd, stdout=PIPE)
             output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
@@ -257,11 +257,7 @@ def create_flair_lesions(mseid, msid):
             # calculating estimated median and standard deviation for lesions
             lesion_mul_flair = base_dir + "/lesion.nii.gz"
 
-            """cmd = ["fslmaths", base_dir + "/skull.nii.gz", "-uthrP","60","-bin",base_dir+ "/thr2.nii.gz"]
-            proc = Popen(cmd, stdout=PIPE)
-            output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]"""
-
-            cmd = ["fslmaths", lesion_bin_MNI,"-sub", base_dir + "/thr.nii.gz", "-thr", ".1", "-bin", "-mul",flair_file,  lesion_mul_flair]
+            cmd = ["fslmaths", lesion_bin_MNI,"-sub",base_dir + "/thr.nii.gz","-thr", ".1", "-bin", "-mul",flair_file,  lesion_mul_flair]
             proc = Popen(cmd, stdout=PIPE)
             output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
@@ -311,12 +307,15 @@ def create_flair_lesions(mseid, msid):
 
                 prob_map = base_dir +"/prob_map_new.nii.gz"
                 prob_map_nobs = base_dir +"/prob_map_nowmbs.nii.gz"
-            
 
                 final_lesion = base_dir + "/lesion_final_new.nii.gz"
                 wm_no_bs = base_dir+ "/wm_no_bs.nii.gz"
 
-                # eroding the wm mask and adding in yhr dilated lesion mask
+                cmd = ["fslmaths", gm_MNI, "-dilM","-dilM", base_dir + "/gm_dil.nii.gz"]
+                proc = Popen(cmd, stdout=PIPE)
+                output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
+
+                # eroding the wm mask and adding in the dilated lesion mask
                 cmd = ["fslmaths",wm_MNI, "-sub", no_wm, "-thr", ".1","-ero","-add",lesion_dil,"-bin", wm_no_bs] # can try adding back later "-sub",gm_MNI,
                 proc = Popen(cmd, stdout=PIPE)
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
@@ -326,44 +325,39 @@ def create_flair_lesions(mseid, msid):
                 proc = Popen(cmd, stdout=PIPE)
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
-
-
                 cmd = ["fslmaths",base_dir +"/lesion_hist.nii.gz", "-div",base_dir+ "/add_his.nii.gz","-mul", wm_with_les, prob_map]
                 proc = Popen(cmd, stdout=PIPE)
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
                 #or just look in the dialated lesion minus the gray matter mask
-                cmd = ["fslmaths",lesion_dil,"-mul",prob_map, "-thr", ".95","-bin","-mul",wm_with_les,"-bin", "-sub",base_dir+ "/thr.nii.gz","-thr", ".1", "-bin", final_lesion]
+                cmd = ["fslmaths",lesion_dil,"-mul",prob_map, "-thr", ".99","-bin","-mul",wm_with_les,"-bin", "-sub",base_dir+ "/thr.nii.gz","-sub", gm_MNI, "-thr", ".1", "-bin", final_lesion]
+                proc = Popen(cmd, stdout=PIPE)
+                output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
+
+                cmd = ["fslmaths",wm_no_bs, "-mul", prob_map, "-ero","-ero", prob_map_nobs]
                 proc = Popen(cmd, stdout=PIPE)
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
 
-
-                """cmd = ["fslmaths",final_lesion,"-mul",lesion_MNI, base_dir+ "/lesion_labeled.nii.gz"]
-                proc = Popen(cmd, stdout=PIPE)
-                output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]"""
-
-
-                cmd = ["fslmaths",wm_no_bs, "-mul", prob_map, "-ero", prob_map_nobs]
+                cmd = ["fslmaths", prob_map_nobs,"-thr", ".99","-sub",base_dir+ "/thr.nii.gz","-thr", ".1", "-bin", "-add", final_lesion, "-bin", base_dir+ "/lesion_prob_map.nii.gz"]
                 proc = Popen(cmd, stdout=PIPE)
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
-                cmd = ["fslmaths", prob_map_nobs,"-thr", ".999","-sub",base_dir+ "/thr.nii.gz","-thr", ".1", "-bin","-ero","-add",final_lesion, "-bin", base_dir+ "/lesion_prob_map.nii.gz"]
-                proc = Popen(cmd, stdout=PIPE)
-                output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
-
-                cmd = ["fslmaths",base_dir+ "/lesion_prob_map.nii.gz", "-dilM", "-mul", prob_map, "-thr", ".9","-sub", base_dir + "/thr2.nii.gz", "-bin", base_dir+ "lesion_prob_map.nii.gz"]
-                proc = Popen(cmd, stdout=PIPE)
-                output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
                 cmd = ["fslmaths", lesion_MNI, "-dilM", "-mul", base_dir+ "/lesion_prob_map.nii.gz", base_dir+ "/lesion_labeled.nii.gz" ]
                 proc = Popen(cmd, stdout=PIPE)
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
    
-                cmd = ["fslview",wm_eroded, wm_with_les,prob_map, base_dir+ "/lesion_labeled.nii.gz",final_lesion, lesion_bin_MNI, flair_file,base_dir+ "/lesion_prob_map.nii.gz" ]
+                cmd = ["fslview",wm_eroded, wm_with_les,prob_map, base_dir+ "/lesion_labeled.nii.gz",final_lesion, lesion_bin_MNI,flair_file,base_dir+ "/lesion_prob_map.nii.gz"]
                 proc = Popen(cmd, stdout=PIPE)
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
+
+                if not os.path.exists(PBR_base_dir + "/" + mseid + "/sienax_t1_les/"):
+                    cmd = ["sienax_optibet", t1_file, "-lm", base_dir+ "/lesion_prob_map.nii.gz", "-r", "-d", "-o", PBR_base_dir + "/" + mseid + "/sienax_t1_les/"]
+                    print("Running SIENAX....", cmd)
+                    proc = Popen(cmd, stdout=PIPE)
+                    output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
 
 
@@ -377,7 +371,7 @@ if __name__ == '__main__':
 
     
     for msid in ms:
-        text_file = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_ms/{0}.txt'.format(msid)
+        text_file = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_esha/{0}.txt'.format(msid)
         if os.path.exists(text_file):
             with open(text_file,'r') as f:
                 timepoints = f.readlines()
