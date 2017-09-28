@@ -21,6 +21,7 @@ class imageData():
         self.bl_t1_mni = bl_t1_mni
         self.lst_file = lst_file
 
+
 def file_label(mse,tp="tpX",count=1):
     if not os.path.exists(PBR_base_dir+"/"+mse+"/alignment/status.json"):
         run_pbr_align(mseid)
@@ -32,29 +33,38 @@ def file_label(mse,tp="tpX",count=1):
             print("no {0} t1 files".format(tp))
             run_pbr_align(mseid)
             t1_file = "none"
+
         else:
             t1_file = data["t1_files"][-1]
             bl_t1_mni = PBR_base_dir+'/'+mse +"/alignment/mni_angulated/"+os.path.split(t1_file)[-1].replace(".nii.gz", "_trans.nii.gz")
+
 
 
         if len(data["t2_files"]) == 0:
             print("no {0} t2 files".format(tp))
             run_pbr_align(mseid)
             t2_file = "none"
+
         else:
             t2_file = data["t2_files"][-1]
+
+
 
         if len(data["gad_files"]) == 0:
             print("no {0} gad files".format(tp))
             gad_file ="none"
+
         else:
             gad_file = data["gad_files"][-1]
+
 
         if len(data["flair_files"]) == 0:
             print("no {0} flair files".format(tp))
             flair_file = "none"
+
         else:
             flair_file = data["flair_files"][-1]
+
 
         if len(data["affines"]) == 0:
             print("no {0} affines".format(tp))
@@ -138,6 +148,9 @@ def apply_tp2_flirt(in_file,bl_t1_mni, affines):
             print ("FLIRT complete"); print()
             print (in_file, "FLIRT complete"); print
 
+
+
+
 def apply_lesion_flirt(lst_file, flair_file, t1_file, bl_t1_mni):
     lst = os.path.split(lst_file)[-1]
     if lst.startswith("no_FP"):
@@ -160,8 +173,8 @@ def apply_lesion_flirt(lst_file, flair_file, t1_file, bl_t1_mni):
         mni_long = PBR_base_dir +'/'+ msid + "/MNI/"
 
         if not os.path.exists(mni_long):
-             os.mkdir(mni_long)
-             print(mni_long)
+            os.mkdir(mni_long)
+            print(mni_long)
         if not os.path.exists(mni_long+ "/lesion_"+mseid + ".nii.gz"):
             shutil.copyfile(lesion_MNI,mni_long + "/lesion_"+mseid + ".nii.gz")
             print(lesion_MNI,mni_long + "/lesion_"+mseid + ".nii.gz")
@@ -244,10 +257,11 @@ def run_pbr_align(mseid):
     #from getpass import getpass
     alignment_folder = "/data/henry7/PBR/subjects/{0}/alignment".format(mseid)
     if os.path.exists(alignment_folder):
-        cmd_rm = ['rm','-r', alignment_folder]
-        print (cmd_rm)
-        proc = Popen(cmd_rm)
-        proc.wait()
+        #cmd_rm = ['rm','-r', alignment_folder]
+        #print (cmd_rm)
+        #proc = Popen(cmd_rm)
+        #proc.wait()
+        print("")
 
     #password = getpass("mspacman password: ")
     cmd = ['pbr', mseid, '-w', 'align', '-R', "-ps", password]
@@ -262,7 +276,7 @@ def check_mni_angulated_folder(mseid):
         check = True
     else:
         print ("mni_angulated folder for {0} does not exist, fixing the issue".format(mseid))
-        run_pbr_align(mseid)
+        #run_pbr_align(mseid)
         print ("mni_angulated folder for {0} exists".format(mseid))
         check = False
     return check
@@ -312,9 +326,9 @@ def check_for_trans_file(mse_id):
             os.system('mv {}/*.hdr {}/tca_roi'.format(nii_folder, nii_folder))
             os.system('mv {}/*.img {}/tca_roi'.format(nii_folder, nii_folder))
             os.system('mv {}/*.roi {}/tca_roi'.format(nii_folder, nii_folder))
-            os.system('rm -r /data/henry7/PBR/subjects/{}/alignment'.format(mse_id))
-        else:
-            os.system('rm -r /data/henry7/PBR/subjects/{}/alignment'.format(mse_id))
+            #os.system('rm -r /data/henry7/PBR/subjects/{}/alignment'.format(mse_id))
+        #else:
+            #os.system('rm -r /data/henry7/PBR/subjects/{}/alignment'.format(mse_id))
     else:
         print('trans file exists in baseline')
         print(trans_file)
@@ -364,6 +378,7 @@ def align_to_baseline(info):
         apply_tp2_flirt(tp2.flair_file, tp1.bl_t1_mni,tp2.affines)
         apply_lesion_flirt(tp2.lst_file,tp2.flair_file, tp2.t1_file, tp1.bl_t1_mni)
         register_wm_mask(tp2.t1_file, tp1.bl_t1_mni)
+        #apply_tp2_flirt_nochop(tp2.t1_nii,tp1.bl_t1_mni, tp2.affines)
         #remove_mat(tp2.affines)
 
 
