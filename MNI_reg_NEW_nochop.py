@@ -201,14 +201,25 @@ def apply_lesion_flirt(lst_file, flair_file, t1_file, bl_t1_mni):
         flt.run()
         print(flt.cmdline)
 
+        #new_in = os.path.split(t1_file)[-1]
+        #ms = new_in.split("-")[0]
+        #mse = new_in.split("-")[1]
+        #msid = "ms" + ms.replace("ms", "").zfill(4)
+
+        #mseid = "mse" + mse.replace("mse", "").zfill(4)
+
 
         msid = str(os.path.split(t1_file)[1].split('-')[0])
         mseid = str(os.path.split(t1_file)[1].split('-')[1])
+        long = PBR_base_dir +'/'+ msid
         mni_long = PBR_base_dir +'/'+ msid + "/MNI/"
 
+
+        if not os.path.exists(long):
+            os.mkdir(long)
         if not os.path.exists(mni_long):
-             os.mkdir(mni_long)
-             print(mni_long)
+            os.mkdir(mni_long)
+            print(mni_long)
         if not os.path.exists(mni_long+ "/lesion_"+mseid + ".nii.gz"):
             shutil.copyfile(lesion_MNI,mni_long + "/lesion_"+mseid + ".nii.gz")
             print(lesion_MNI,mni_long + "/lesion_"+mseid + ".nii.gz")
@@ -383,7 +394,7 @@ def get_msid(mseid):
         return 1
 
 def get_tps(msid,mseid):
-    filepath = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_ms/{0}.txt'.format(msid)
+    filepath = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_esha/{0}.txt'.format(msid)
     if os.path.exists(filepath):
         with open(filepath,'r') as f:
             timepoints = f.readlines()
@@ -480,7 +491,7 @@ if __name__ == '__main__':
     print("msid is:", ms)
 
     for msid in ms:
-        text_file = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_ms/{0}.txt'.format(msid)
+        text_file = '/data/henry6/mindcontrol_ucsf_env/watchlists/long/VEO/EPIC_esha/{0}.txt'.format(msid)
         if os.path.exists(text_file):
             with open(text_file,'r') as f:
                 timepoints = f.readlines()
