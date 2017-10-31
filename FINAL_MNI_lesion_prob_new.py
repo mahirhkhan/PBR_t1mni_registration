@@ -50,10 +50,10 @@ def find_lesion_MNI(mseid):
             print(flair_file)
     
 
-    lesion_MNI = PBR_base_dir+ mseid + "/alignment/baseline_mni/lesion_MNI.nii.gz"
+    lesion_MNI = PBR_base_dir+ mseid + "/alignment/lesion_MNI.nii.gz"
     mni_long = PBR_base_dir + msid + "/MNI/"
-    wm_MNI = PBR_base_dir+ mseid + "/alignment/baseline_mni/WM_MNI.nii.gz"
-    gm_MNI = PBR_base_dir+ mseid + "/alignment/baseline_mni/GM_MNI.nii.gz"
+    wm_MNI = PBR_base_dir+ mseid + "/alignment/WM_MNI.nii.gz"
+    gm_MNI = PBR_base_dir+ mseid + "/alignment/GM_MNI.nii.gz"
     
     if os.path.exists(wm_MNI):
         print(wm_MNI)
@@ -63,6 +63,8 @@ def find_lesion_MNI(mseid):
         print(wm_MNI,mni_long + "/wm_"+mseid + ".nii.gz")
 
     if os.path.exists(gm_MNI):
+        if not os.path.exists(mni_long):
+            os.mkdir(mni_long)
         print(gm_MNI)
         cmd = ["fslmaths", gm_MNI, "-bin", gm_MNI]
         proc = Popen(cmd, stdout=PIPE)
@@ -349,15 +351,15 @@ def create_flair_lesions(mseid, msid):
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
    
-                cmd = ["fslview",wm_eroded, wm_with_les,prob_map, base_dir+ "/lesion_labeled.nii.gz",final_lesion, lesion_bin_MNI,flair_file,base_dir+ "/lesion_prob_map.nii.gz"]
+                """cmd = ["fslview",wm_eroded, wm_with_les,prob_map, base_dir+ "/lesion_labeled.nii.gz",final_lesion, lesion_bin_MNI,flair_file,base_dir+ "/lesion_prob_map.nii.gz"]
+                proc = Popen(cmd, stdout=PIPE)
+                output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]"""
+
+                #if not os.path.exists(PBR_base_dir + "/" + mseid + "/sienax/"):
+                cmd = ["sienax_optibet", format_to_baseline_mni(t1_file, "_T1mni.nii.gz"), "-lm", base_dir+ "/lesion_prob_map.nii.gz", "-r", "-d", "-o", PBR_base_dir + "/" + mseid + "/sienax/"]
+                print("Running SIENAX....", cmd)
                 proc = Popen(cmd, stdout=PIPE)
                 output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
-
-                if not os.path.exists(PBR_base_dir + "/" + mseid + "/sienax_t1_les/"):
-                    cmd = ["sienax_optibet", t1_file, "-lm", base_dir+ "/lesion_prob_map.nii.gz", "-r", "-d", "-o", PBR_base_dir + "/" + mseid + "/sienax_t1_les/"]
-                    print("Running SIENAX....", cmd)
-                    proc = Popen(cmd, stdout=PIPE)
-                    output = [l.decode("utf-8").split() for l in proc.stdout.readlines()[:]]
 
 
 
